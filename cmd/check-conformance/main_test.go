@@ -75,6 +75,29 @@ var validBootstrapPackDescriptor = `{
   ]
 }`
 
+var validPackV2Descriptor = `{
+  "schema": "capability-pack/v1",
+  "capability": "opentofu",
+  "area": "infrastructure",
+  "version": 2,
+  "summary": "OpenTofu infrastructure gates with the value-evaluated proof.",
+  "provisioning": {
+    "kind": "recipe",
+    "tool": "tofu",
+    "version": "1.12.5",
+    "environment": {},
+    "artifacts": {
+      "linux-amd64": {"url": "https://example.invalid/tofu.zip", "sha256": "` + testDigestA + `"}
+    }
+  },
+  "discovery": {"roots": {"fileGlob": "**/*.tf"}, "excludeDirs": []},
+  "assertions": [],
+  "gates": [
+    {"name": "opentofu-validate", "command": "tofu", "args": ["validate"], "scope": "per-root"},
+    {"name": "opentofu-test", "command": "tofu", "args": ["test"], "scope": "per-root"}
+  ]
+}`
+
 var validConfigDocument = `{
   "schemaVersion": 4,
   "toolchain": {"language": "go", "version": "1.26.6"},
@@ -125,6 +148,7 @@ func validVectorRoot(t *testing.T) string {
 	writeFile(t, root, "capabilities/security/cosign/conformance/negative/bad.json", `{"schema": "nope"}`)
 	writeConfigVectors(t, root)
 	writeFile(t, root, "capabilities/infrastructure/opentofu/v1/pack.json", validPackDescriptor)
+	writeFile(t, root, "capabilities/infrastructure/opentofu/v2/pack.json", validPackV2Descriptor)
 	writeFile(t, root, "capabilities/security/cosign/v1/pack.json", validBootstrapPackDescriptor)
 	for _, ecosystem := range []string{"go", "npm", "python"} {
 		writeFile(t, root, "policies/dependency/"+ecosystem+"/policy.json", validPolicyDocument)

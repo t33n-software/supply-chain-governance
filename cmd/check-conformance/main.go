@@ -104,6 +104,7 @@ func shippedPolicyEcosystems() []string {
 func shippedPackDescriptors() []string {
 	return []string{
 		"capabilities/infrastructure/opentofu/v1/pack.json",
+		"capabilities/infrastructure/opentofu/v2/pack.json",
 		"capabilities/security/cosign/v1/pack.json",
 	}
 }
