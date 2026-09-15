@@ -1,0 +1,47 @@
+{
+  "schema": "capability-pack/v1",
+  "capability": "opentofu",
+  "area": "infrastructure",
+  "version": 2,
+  "summary": "OpenTofu infrastructure gates: pinned toolchain provisioning with digest verification, format checking, initialization, validation, and the value-evaluated custom-condition proof per HCL root.",
+  "provisioning": {
+    "kind": "recipe",
+    "tool": "tofu",
+    "version": "1.12.5",
+    "environment": {
+      "OPENTOFU_ENFORCE_GPG_VALIDATION": "true",
+      "TF_IN_AUTOMATION": "true",
+      "TF_INPUT": "false"
+    },
+    "artifacts": {
+      "linux-amd64": {
+        "url": "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_linux_amd64.zip",
+        "sha256": "dade9650e6b74fc7a8b986bd8717497d32f9e09cf82e479afef4977fa3085536",
+        "signature": "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_linux_amd64.zip.sig"
+      },
+      "windows-amd64": {
+        "url": "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_windows_amd64.zip",
+        "sha256": "465adc4bdf4aa80c650387b7ada2cf750f7908bf1fae7f35b05402c384e79928",
+        "signature": "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_windows_amd64.zip.sig"
+      },
+      "darwin-arm64": {
+        "url": "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_darwin_arm64.zip",
+        "sha256": "dbb5a5bae9b0cabf622cd81a80ea02230eae8a3813215400df41a2cb89b47157",
+        "signature": "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_darwin_arm64.zip.sig"
+      }
+    }
+  },
+  "discovery": {
+    "roots": {"fileGlob": "**/*.tf"},
+    "excludeDirs": [".build", ".git", ".cache", ".terraform", "coverage", "dist", "vendor"]
+  },
+  "assertions": [
+    {"name": "opentofu-version", "command": "tofu", "args": ["version"], "expect": "OpenTofu v1.12.5"}
+  ],
+  "gates": [
+    {"name": "opentofu-fmt-check", "command": "tofu", "args": ["fmt", "-check", "-recursive"], "scope": "repository"},
+    {"name": "opentofu-init", "command": "tofu", "args": ["init", "-backend=false", "-input=false", "-no-color"], "scope": "per-root"},
+    {"name": "opentofu-validate", "command": "tofu", "args": ["validate", "-no-color"], "scope": "per-root"},
+    {"name": "opentofu-test", "command": "tofu", "args": ["test", "-no-color"], "scope": "per-root"}
+  ]
+}

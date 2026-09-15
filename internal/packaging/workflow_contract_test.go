@@ -337,10 +337,88 @@ func TestConformanceVectorsAndShippedPoliciesArePresent(t *testing.T) {
 
 	for _, descriptor := range []string{
 		repositoryPath("capabilities", "infrastructure", "opentofu", "v1", "pack.json"),
+		repositoryPath("capabilities", "infrastructure", "opentofu", "v2", "pack.json"),
 		repositoryPath("capabilities", "security", "cosign", "v1", "pack.json"),
 	} {
 		if _, err := os.Stat(descriptor); err != nil {
 			t.Fatalf("missing shipped capability pack descriptor %q: %v", descriptor, err)
+		}
+	}
+}
+
+// TestOpenTofuPackV2BindsTheValueEvaluatedProof proves the opentofu pack's
+// major version 2: it ships as a new major beside the untouched v1 (a gate
+// content change is never an in-place edit), it carries the value-evaluated
+// custom-condition proof gate, and the conformance harness registers the
+// shipped v2 descriptor.
+func TestOpenTofuPackV2BindsTheValueEvaluatedProof(t *testing.T) {
+	type packGate struct {
+		Name  string   `json:"name"`
+		Args  []string `json:"args"`
+		Scope string   `json:"scope"`
+	}
+	type packDocument struct {
+		Version int        `json:"version"`
+		Gates   []packGate `json:"gates"`
+	}
+	readPack := func(path string) packDocument {
+		t.Helper()
+		var document packDocument
+		if err := json.Unmarshal([]byte(readRepositoryFile(t, path)), &document); err != nil {
+			t.Fatalf("%s is not valid JSON: %v", path, err)
+		}
+		return document
+	}
+
+	v1 := readPack(filepath.Join("capabilities", "infrastructure", "opentofu", "v1", "pack.json"))
+	if v1.Version != 1 {
+		t.Fatalf("the v1 descriptor carries version %d, want 1", v1.Version)
+	}
+	for _, gate := range v1.Gates {
+		if gate.Name == "opentofu-test" {
+			t.Fatal("the v1 descriptor must not carry the value-evaluated proof gate: a gate content change is never an in-place edit")
+		}
+	}
+
+	v2 := readPack(filepath.Join("capabilities", "infrastructure", "opentofu", "v2", "pack.json"))
+	if v2.Version != 2 {
+		t.Fatalf("the v2 descriptor carries version %d, want 2", v2.Version)
+	}
+	wantGates := map[string]packGate{
+		"opentofu-fmt-check": {Args: []string{"fmt", "-check", "-recursive"}, Scope: "repository"},
+		"opentofu-init":      {Args: []string{"init", "-backend=false", "-input=false", "-no-color"}, Scope: "per-root"},
+		"opentofu-validate":  {Args: []string{"validate", "-no-color"}, Scope: "per-root"},
+		"opentofu-test":      {Args: []string{"test", "-no-color"}, Scope: "per-root"},
+	}
+	if len(v2.Gates) != len(wantGates) {
+		t.Fatalf("the v2 descriptor carries %d gates, want %d", len(v2.Gates), len(wantGates))
+	}
+	for _, gate := range v2.Gates {
+		want, found := wantGates[gate.Name]
+		if !found {
+			t.Fatalf("the v2 descriptor carries an unexpected gate %q", gate.Name)
+		}
+		if !slices.Equal(gate.Args, want.Args) || gate.Scope != want.Scope {
+			t.Fatalf("the v2 gate %q carries %v/%s, want %v/%s", gate.Name, gate.Args, gate.Scope, want.Args, want.Scope)
+		}
+	}
+
+	harness := readRepositoryFile(t, filepath.Join("cmd", "check-conformance", "main.go"))
+	if !strings.Contains(harness, "capabilities/infrastructure/opentofu/v2/pack.json") {
+		t.Fatal("the conformance harness does not register the shipped v2 descriptor")
+	}
+
+	readme := readRepositoryFile(t, filepath.Join("capabilities", "infrastructure", "opentofu", "README.md"))
+	for _, required := range []string{
+		"opentofu@2",
+		"opentofu-test",
+		"DEVELOPER_PLATFORM_INFRASTRUCTURE_AS_CODE_OPENTOFU_QUALITY_GATES_REFERENCE_001",
+		"clean staging",
+		"static evaluation-safety guard",
+		"governed window",
+	} {
+		if !strings.Contains(readme, required) {
+			t.Fatalf("the pack README does not document %q", required)
 		}
 	}
 }
