@@ -43,5 +43,6 @@
     {"name": "opentofu-init", "command": "tofu", "args": ["init", "-backend=false", "-input=false", "-no-color"], "scope": "per-root"},
     {"name": "opentofu-validate", "command": "tofu", "args": ["validate", "-no-color"], "scope": "per-root"},
     {"name": "opentofu-test", "command": "tofu", "args": ["test", "-no-color"], "scope": "per-root"}
-  ]
+  ],
+  "minEngineVersion": "1.1.0"
 }

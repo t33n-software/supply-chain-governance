@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -423,6 +424,39 @@ func TestOpenTofuPackV2BindsTheValueEvaluatedProof(t *testing.T) {
 	}
 }
 
+// TestOpenTofuPacksDeclareTheEngineFloor proves that both shipped opentofu
+// pack majors declare the minimum engine machinery their gates require: the
+// clean-staging execution environment and the controlled gate environment are
+// engine machinery, and a tenant whose pinned engine predates the declared
+// level — or carries no compatibility proof entry for the pack major — fails
+// closed at gate-plan resolution. The guard pins the declared form (a pinned
+// three-part engine version), never the concrete floor value: the floor is
+// instance data that rises with future machinery.
+func TestOpenTofuPacksDeclareTheEngineFloor(t *testing.T) {
+	type packDocument struct {
+		Version          int    `json:"version"`
+		MinEngineVersion string `json:"minEngineVersion"`
+	}
+	floorPattern := regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+$`)
+	for _, descriptor := range []string{
+		"capabilities/infrastructure/opentofu/v1/pack.json",
+		"capabilities/infrastructure/opentofu/v2/pack.json",
+	} {
+		var document packDocument
+		if err := json.Unmarshal([]byte(readRepositoryFile(t, descriptor)), &document); err != nil {
+			t.Fatalf("%s is not valid JSON: %v", descriptor, err)
+		}
+		if !floorPattern.MatchString(document.MinEngineVersion) {
+			t.Fatalf("%s carries minEngineVersion %q, want a pinned three-part engine version", descriptor, document.MinEngineVersion)
+		}
+	}
+
+	schema := readRepositoryFile(t, filepath.Join("schemas", "capability-pack", "v1", "capability-pack.schema.json"))
+	if !strings.Contains(schema, `"minEngineVersion"`) {
+		t.Fatal("the capability-pack/v1 schema does not carry the minEngineVersion surface")
+	}
+}
+
 func TestJSONSchemasStayInSyncWithValidators(t *testing.T) {
 	documentSchema := readRepositoryFile(t, filepath.Join("schemas", "evidence-graph", "v1", "document.schema.json"))
 	for _, required := range []string{
@@ -450,7 +484,7 @@ func TestJSONSchemasStayInSyncWithValidators(t *testing.T) {
 	packSchema := readRepositoryFile(t, filepath.Join("schemas", "capability-pack", "v1", "capability-pack.schema.json"))
 	for _, required := range []string{
 		"capability-pack/v1", "provisioning", "recipe", "artifacts", "sha256", "signature",
-		"discovery", "fileGlob", "assertions", "gates", "repository", "per-root",
+		"discovery", "fileGlob", "assertions", "gates", "repository", "per-root", "minEngineVersion",
 	} {
 		if !strings.Contains(packSchema, required) {
 			t.Fatalf("capability-pack.schema.json does not contain %q", required)

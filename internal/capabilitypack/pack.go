@@ -29,12 +29,13 @@ const (
 )
 
 var (
-	identityPattern    = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
-	toolPattern        = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]*$`)
-	versionPattern     = regexp.MustCompile(`^[0-9]+\.[0-9]+(\.[0-9]+)?$`)
-	platformPattern    = regexp.MustCompile(`^[a-z0-9]+-[a-z0-9]+$`)
-	environmentPattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
-	digestPattern      = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	identityPattern      = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
+	toolPattern          = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]*$`)
+	versionPattern       = regexp.MustCompile(`^[0-9]+\.[0-9]+(\.[0-9]+)?$`)
+	engineVersionPattern = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+$`)
+	platformPattern      = regexp.MustCompile(`^[a-z0-9]+-[a-z0-9]+$`)
+	environmentPattern   = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
+	digestPattern        = regexp.MustCompile(`^[0-9a-f]{64}$`)
 )
 
 // Descriptor is one versioned capability pack descriptor. The discovery and
@@ -51,6 +52,14 @@ type Descriptor struct {
 	Discovery    *Discovery   `json:"discovery"`
 	Assertions   []Assertion  `json:"assertions"`
 	Gates        []Gate       `json:"gates"`
+	// MinEngineVersion is the optional engine-machinery binding: the minimum
+	// engine version whose machinery the pack's declared gates require,
+	// including the execution environment they assume. When present, a tenant
+	// whose pinned engine predates the declared level — or whose pinned engine
+	// carries no compatibility proof entry for this pack major — fails closed
+	// at gate-plan resolution: the pack's declared form never degrades into a
+	// local re-implementation on an older engine and never executes unproven.
+	MinEngineVersion string `json:"minEngineVersion,omitempty"`
 }
 
 // Provisioning binds the recipe by which a runner receives the pack's tool.
@@ -137,6 +146,9 @@ func (d Descriptor) Validate() error {
 	}
 	if d.Version < 1 {
 		return fmt.Errorf("version must be a positive major version, got %d", d.Version)
+	}
+	if d.MinEngineVersion != "" && !engineVersionPattern.MatchString(d.MinEngineVersion) {
+		return fmt.Errorf("minEngineVersion %q must be a pinned three-part engine version such as 1.3.0", d.MinEngineVersion)
 	}
 	if strings.TrimSpace(d.Summary) == "" {
 		return errors.New("summary must not be empty")

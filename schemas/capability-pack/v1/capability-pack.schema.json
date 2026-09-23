@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/t33n-software/supply-chain-governance/schemas/capability-pack/v1/capability-pack.schema.json",
   "title": "capability-pack/v1 document",
-  "description": "Canonical capability-pack/v1 descriptor: one versioned, schema-bound unit of shared gate behavior that tenants declare through the extends list of the quality-gate configuration seam. Provisioning is always a digest-verified recipe, and gate names are always prefixed by the capability. A pack without per-root gates may omit the discovery surface; the engine-bound signature verifier bootstrap pack is the single documented form that omits the gates surface, because its proof runs inside provisioning.",
+  "description": "Canonical capability-pack/v1 descriptor: one versioned, schema-bound unit of shared gate behavior that tenants declare through the extends list of the quality-gate configuration seam. Provisioning is always a digest-verified recipe, and gate names are always prefixed by the capability. A pack without per-root gates may omit the discovery surface; the engine-bound signature verifier bootstrap pack is the single documented form that omits the gates surface, because its proof runs inside provisioning. A pack may declare minEngineVersion: the minimum engine version whose machinery its declared gates require, including the execution environment they assume; a tenant whose pinned engine predates the declared level or carries no compatibility proof entry for the pack major fails closed at gate-plan resolution.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "capability", "area", "version", "summary", "provisioning", "assertions"],
@@ -164,6 +164,11 @@
           }
         }
       }
+    },
+    "minEngineVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "The optional minimum engine version whose machinery the pack's declared gates require, including the execution environment they assume — a pinned three-part engine version such as 1.1.0. When present, a tenant whose pinned engine predates the declared level, or whose pinned engine carries no compatibility proof entry for this pack major, fails closed at gate-plan resolution: the pack's declared form never degrades into a local re-implementation on an older engine and never executes unproven."
     }
   }
 }
