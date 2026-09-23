@@ -62,6 +62,31 @@ valid failure. This execution environment is a property of the static gate
 layer itself and is provided uniformly by the orchestrator's pack execution;
 it is not a per-pack option.
 
+Every gate also executes with a controlled environment: exactly the
+descriptor's declared `environment` map over the engine's governed baseline —
+never the operator process's uncontrolled inheritance, which would make the
+gate outcome depend on the ambient machine state. The engine binds the
+governed artifact-cache surface for the pack's cache-capable tool (the
+OpenTofu plugin cache), so a per-root gate sequence downloads each bound
+provider artifact once, and every gate failure surfaces the bounded captured
+output of the failed step, never a bare exit code. These mechanisms are owned
+by the capability-pack contract and the Go quality-authority contract,
+referenced here, never restated.
+
+## The engine machinery binding
+
+Both pack majors declare `minEngineVersion`: the minimum engine version whose
+machinery the pack's declared gates require, including the execution
+environment they assume (the clean staging of every root's tracked files and
+the controlled gate environment). A tenant whose pinned engine predates the
+declared level — or whose pinned engine carries no compatibility proof entry
+for the pack major — fails closed at gate-plan resolution: the pack's
+declared form never degrades into a local re-implementation on an older
+engine and never executes unproven on a newer one. The field form is owned by
+the pack descriptor schema in this kernel; the resolution mechanics and the
+release-proven compatibility register are owned by the Go quality-authority
+contract — both referenced, never restated.
+
 ## The value-evaluation duty and the static guard
 
 Every custom condition — every variable `validation` block, every

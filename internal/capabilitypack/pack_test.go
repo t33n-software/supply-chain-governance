@@ -105,6 +105,18 @@ func TestParseAcceptsTheBootstrapVerifierForm(t *testing.T) {
 	}
 }
 
+func TestParseAcceptsTheEngineMachineryBinding(t *testing.T) {
+	t.Parallel()
+
+	descriptor, err := Parse([]byte(mutate(t, `"summary": "OpenTofu infrastructure gates."`, `"summary": "OpenTofu infrastructure gates.", "minEngineVersion": "1.1.0"`)))
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if descriptor.MinEngineVersion != "1.1.0" {
+		t.Fatalf("Parse() minEngineVersion = %q, want %q", descriptor.MinEngineVersion, "1.1.0")
+	}
+}
+
 func TestParseAcceptsRepositoryScopeGatesWithoutDiscovery(t *testing.T) {
 	t.Parallel()
 
@@ -192,6 +204,16 @@ func TestParseRejectsNonConformingDocuments(t *testing.T) {
 			name:     "version below one",
 			contents: mutate(t, `"version": 1,`, `"version": 0,`),
 			want:     "version must be a positive major version",
+		},
+		{
+			name:     "engine floor two-part",
+			contents: mutate(t, `"version": 1,`, `"version": 1, "minEngineVersion": "1.2",`),
+			want:     "must be a pinned three-part engine version",
+		},
+		{
+			name:     "engine floor unpinned",
+			contents: mutate(t, `"version": 1,`, `"version": 1, "minEngineVersion": "latest",`),
+			want:     "must be a pinned three-part engine version",
 		},
 		{
 			name:     "empty summary",
@@ -440,6 +462,21 @@ func TestDescriptorValidationBoundaries(t *testing.T) {
 		discovery := Discovery{Roots: Roots{FileGlob: "**/*.tf"}}
 		if err := discovery.validate(); err != nil {
 			t.Fatalf("validate() = %v", err)
+		}
+	})
+
+	t.Run("descriptor with a malformed engine floor", func(t *testing.T) {
+		t.Parallel()
+		descriptor := Descriptor{
+			Schema:           SchemaID,
+			Capability:       "opentofu",
+			Area:             "infrastructure",
+			Version:          1,
+			Summary:          "x",
+			MinEngineVersion: "1.2",
+		}
+		if err := descriptor.Validate(); err == nil || !strings.Contains(err.Error(), "minEngineVersion") {
+			t.Fatalf("Validate() = %v", err)
 		}
 	})
 }

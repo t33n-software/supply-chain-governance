@@ -42,5 +42,6 @@
     {"name": "opentofu-fmt-check", "command": "tofu", "args": ["fmt", "-check", "-recursive"], "scope": "repository"},
     {"name": "opentofu-init", "command": "tofu", "args": ["init", "-backend=false", "-input=false", "-no-color"], "scope": "per-root", "timeout": "10m"},
     {"name": "opentofu-validate", "command": "tofu", "args": ["validate", "-no-color"], "scope": "per-root"}
-  ]
+  ],
+  "minEngineVersion": "1.1.0"
 }
