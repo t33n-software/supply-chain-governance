@@ -108,5 +108,8 @@ the metadata gate (`go -C tools mod tidy -diff`) fails closed on the drift.
   `tools/tools.go`, followed by `go -C tools mod tidy`.
 - ❌ Don't keep a bare `require` as the durable form — it drifts out under
   `go mod tidy` and the metadata gate fails closed.
+- ❌ Don't run `go mod tidy -modfile tools/go.mod` from the repository root —
+  the root package context pulls the main-module package tree into resolution;
+  the canonical form is `go -C tools mod tidy`.
 - ❌ Don't pin a catalog-foreign tool only to hold a module — it dilutes the
   tool admission with a tool the tenant never executes.
